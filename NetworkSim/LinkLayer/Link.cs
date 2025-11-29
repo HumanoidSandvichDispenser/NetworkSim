@@ -16,9 +16,9 @@ public class Link : Entity, IDrawable
     public int Bandwidth { get; set; } = 1 << 12; // 4 Kbps
 
     /// <summary>
-    /// The frame currently being transmitted on this link for each endpoint.
+    /// The physical packet currently being transmitted on this link for each endpoint.
     /// </summary>
-    public Frame?[] CurrentTransmission { get; } = new Frame?[2];
+    public PhysicalPacket?[] CurrentTransmission { get; } = new PhysicalPacket?[2];
 
     public Link(LinkNode end1, LinkNode end2)
     {
@@ -40,9 +40,9 @@ public class Link : Entity, IDrawable
     }
 
     /// <summary>
-    /// Gets the frame currently being transmitted to the specified endpoint.
+    /// Gets the packet currently being transmitted to the specified endpoint.
     /// </summary>
-    public Frame? GetTransmission(LinkNode endpoint)
+    public PhysicalPacket? GetTransmission(LinkNode endpoint)
     {
         return CurrentTransmission[GetIndexOfEndpoint(endpoint)]!;
     }
@@ -66,26 +66,33 @@ public class Link : Entity, IDrawable
     {
         int index = GetIndexOfEndpoint(destination);
         float transmissionTime = (float)frame.Size / (Bandwidth * 8);
-        CurrentTransmission[index] = frame;
-        frame.CurrentLink = this;
-        frame.TransmissionTime = transmissionTime;
-        frame.TimeLeft = transmissionTime;
-        frame.TransmissionComplete += TransmissionComplete;
-        CurrentWorld?.AddEntity(frame);
+
+        PhysicalPacket packet = new PhysicalPacket();
+        packet.Frame = frame;
+        packet.CurrentLink = this;
+        packet.TransmissionTime = transmissionTime;
+        packet.TimeLeft = transmissionTime;
+        packet.TransmissionComplete += TransmissionComplete;
+        CurrentTransmission[index] = packet;
+
+        CurrentWorld?.AddEntity(packet);
     }
 
-    private void TransmissionComplete(Frame frame)
+    private void TransmissionComplete(PhysicalPacket packet)
     {
-        frame.TransmissionComplete -= TransmissionComplete;
-        frame.CurrentLink = null;
+        packet.TransmissionComplete -= TransmissionComplete;
+        packet.CurrentLink = null;
 
-        int index = Array.IndexOf(CurrentTransmission, frame);
+        int index = Array.IndexOf(CurrentTransmission, packet);
         if (index >= 0)
         {
             CurrentTransmission[index] = null;
             var destinationEndpoint = Endpoints[index];
-            destinationEndpoint.ReceiveFrame(frame, this);
+            destinationEndpoint.ReceiveFrame(packet.Frame, this);
         }
+
+        // remove the packet from the world
+        CurrentWorld?.RemoveEntity(packet);
     }
 
     public override void Update(float delta)
@@ -93,9 +100,9 @@ public class Link : Entity, IDrawable
 
     }
 
-    public int GetTransmissionIndex(Frame frame)
+    public int GetTransmissionIndex(PhysicalPacket packet)
     {
-        return Array.IndexOf(CurrentTransmission, frame);
+        return Array.IndexOf(CurrentTransmission, packet);
     }
 
     public void Draw()

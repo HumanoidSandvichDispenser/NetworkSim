@@ -33,7 +33,6 @@ public class NetworkLayerTest
         world.AddEntity(router.Interfaces[1].LinkNode!);
         world.AddEntity(switchA);
         world.AddEntity(switchB);
-        world.AddEntity(frame);
 
         switchA.LinkWith(router.Interfaces[0].LinkNode!);
         switchB.LinkWith(router.Interfaces[1].LinkNode!);

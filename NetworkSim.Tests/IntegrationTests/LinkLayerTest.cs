@@ -52,8 +52,6 @@ public class LinkLayerTests
             DestinationMac = "00:00:00:00:00:02",
         };
 
-        world.AddEntity(frame);
-
         endpoint1.SendFrame(frame);
 
         endpoint1.TxQueue.ShouldNotBeEmpty();
@@ -61,7 +59,6 @@ public class LinkLayerTests
 
         var dequeuedFrame = endpoint1.TxQueue[link].Dequeue();
         dequeuedFrame.SourceMac.ShouldBe(frame.SourceMac);
-        dequeuedFrame.CurrentLink.ShouldBeNull();
     }
 
     [Fact]
@@ -81,7 +78,6 @@ public class LinkLayerTests
             SourceMac = "a",
             DestinationMac = "b",
         };
-        world.AddEntity(frame);
 
         Frame? receivedFrame = null;
         endpoint2.FrameReceived += f => receivedFrame = f;

@@ -21,12 +21,6 @@ public class Switch : LinkNode
 
     public override void SendFrame(Frame frame, Link? forwardFromLink = null)
     {
-        if (frame.CurrentWorld != CurrentWorld)
-        {
-            frame.CurrentWorld?.RemoveEntity(frame);
-            CurrentWorld?.AddEntity(frame);
-        }
-
         if (_macTable.ContainsKey(frame.DestinationMac))
         {
             // known destination, forward to that link
@@ -60,14 +54,9 @@ public class Switch : LinkNode
                         continue;
                     }
 
-                    var clone = (Frame)frame.Clone();
-                    CurrentWorld?.AddEntity(clone);
-
-                    _txQueue[link].TryEnqueue(clone);
+                    _txQueue[link].TryEnqueue(frame);
                 }
             }
-
-            CurrentWorld?.RemoveEntity(frame);
         }
     }
 
@@ -85,10 +74,6 @@ public class Switch : LinkNode
         {
             // deliver to upper layer through event
             InvokeFrameReceived(frame);
-
-            // typically, the upper layers will just another frame, so we
-            // can free the current one
-            CurrentWorld?.RemoveEntity(frame);
         }
     }
 
