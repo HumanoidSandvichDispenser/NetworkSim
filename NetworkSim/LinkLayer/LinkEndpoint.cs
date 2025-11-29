@@ -30,8 +30,6 @@ public sealed class LinkEndpoint : LinkNode
             base.Unlink(_connectedLink.GetOtherEndpoint(this));
         }
 
-        Console.WriteLine($"LinkEndpoint {MacAddress} linking with {node.MacAddress}");
-
         _connectedLink = base.LinkWith(node);
         return _connectedLink;
     }
@@ -53,7 +51,6 @@ public sealed class LinkEndpoint : LinkNode
 
     public override void SendFrame(Frame frame, Link? forwardFromLink = null)
     {
-        Console.WriteLine($"LinkEndpoint {MacAddress} queueing frame to {frame.DestinationMac}");
         _txQueue.TryEnqueue(frame);
     }
 

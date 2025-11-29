@@ -64,13 +64,10 @@ public class NetworkInterface
 
     private void OnFrameReceived(LinkLayer.Frame frame)
     {
-        Console.WriteLine($"NetworkInterface received frame with datagram from {frame.SourceMac} to {frame.DestinationMac}");
-
         DatagramReceived?.Invoke(this, frame.Datagram);
 
         if (frame.Datagram is ArpPayload arpPayload)
         {
-            Console.WriteLine($"Frame contains ARP payload: {arpPayload}");
             ArpPayloadReceived?.Invoke(arpPayload, frame, this);
         }
     }

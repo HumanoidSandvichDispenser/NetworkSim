@@ -68,8 +68,6 @@ public abstract class NetworkNode : Entity
     /// </summary>
     public void OnArpPayloadReceived(ArpPayload arp, LinkLayer.Frame frame, NetworkInterface ni)
     {
-        Console.WriteLine($"Processing ARP payload: {arp}");
-
         if (arp.Operation == ArpPayload.OperationType.Request)
         {
             Console.WriteLine($"ARP request received for IP {arp.DestinationIp:X8}");

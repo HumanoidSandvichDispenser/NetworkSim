@@ -77,8 +77,6 @@ public abstract class LinkNode : Entity, IDrawable
 
     protected void InvokeFrameReceived(Frame frame)
     {
-        Console.WriteLine($"LinkNode {MacAddress} received frame from {frame.SourceMac} to {frame.DestinationMac}");
-        Console.WriteLine("Invoking FrameReceived event");
         FrameReceived?.Invoke(frame);
     }
 }
