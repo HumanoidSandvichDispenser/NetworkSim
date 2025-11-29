@@ -81,10 +81,14 @@ public class Switch : LinkNode
             SendFrame(frame, fromLink);
         }
 
-        if (frame.DestinationMac == MacAddress || IsPromiscuous)
+        if (frame.DestinationMac == MacAddress)
         {
             // deliver to upper layer through event
             InvokeFrameReceived(frame);
+
+            // typically, the upper layers will just another frame, so we
+            // can free the current one
+            CurrentWorld?.RemoveEntity(frame);
         }
     }
 

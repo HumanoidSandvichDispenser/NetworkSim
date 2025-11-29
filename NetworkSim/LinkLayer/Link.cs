@@ -71,6 +71,7 @@ public class Link : Entity, IDrawable
         frame.TransmissionTime = transmissionTime;
         frame.TimeLeft = transmissionTime;
         frame.TransmissionComplete += TransmissionComplete;
+        CurrentWorld?.AddEntity(frame);
     }
 
     private void TransmissionComplete(Frame frame)

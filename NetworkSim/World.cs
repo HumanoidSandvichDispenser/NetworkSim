@@ -16,6 +16,8 @@ public class World
         }
     }
 
+    private bool _updateGuard = false;
+
     private HashSet<Entity> _entities { get; set; } = new();
 
     private List<IDrawable> _drawables { get; set; } = new();
@@ -37,6 +39,12 @@ public class World
 
         _entitiesToAdd.Enqueue(entity);
         entity.CurrentWorld = this;
+        entity.AddToWorld(this);
+
+        if (!_updateGuard)
+        {
+            ProcessEntityQueues();
+        }
 
         return entity;
     }
@@ -46,6 +54,11 @@ public class World
         if (_entities.Contains(entity))
         {
             _entitiesToRemove.Enqueue(entity);
+        }
+
+        if (!_updateGuard)
+        {
+            ProcessEntityQueues();
         }
 
         return entity;
@@ -78,15 +91,17 @@ public class World
 
     public void Update(float delta, int steps = 1)
     {
-        ProcessEntityQueues();
-
         for (int i = 0; i < steps; i++)
         {
+            ProcessEntityQueues();
+
+            _updateGuard = true;
             float scaledDelta = delta * TimeScale;
             foreach (var entity in _entities)
             {
                 entity.Update(scaledDelta);
             }
+            _updateGuard = false;
         }
     }
 

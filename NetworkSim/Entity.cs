@@ -20,4 +20,13 @@ public abstract class Entity : ICloneable
     {
         return (Entity)Clone();
     }
+
+    /// <summary>
+    /// Called when the entity is added to a world. Override to perform setup
+    /// such as adding child entities.
+    /// </summary>
+    public virtual void AddToWorld(World world)
+    {
+
+    }
 }

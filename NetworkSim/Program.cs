@@ -14,78 +14,44 @@ internal static class Program
         Raylib.SetTargetFPS(60);
 
         var world = World.Instance;
-        var timer = new Timer();
-        world.AddEntity(timer);
-        world.TimeScale = (float)Math.Pow(2, -11);
-        timer.Start(world.TimeScale);
-        timer.IsRepeating = true;
+        world.TimeScale = 0.001f;
 
-        var switchA = new LinkLayer.Switch("00:00:00:00:00:01");
-        var switchB = new LinkLayer.Switch("00:00:00:00:00:02");
-        var switchC = new LinkLayer.Switch("00:00:00:00:00:03");
-        var switchD = new LinkLayer.Switch("00:00:00:00:00:04");
+        var routerA = new NetworkLayer.IpTablesRouter(1);
+        routerA.Interfaces[0].LinkNode = new LinkLayer.LinkEndpoint("A");
+        //routerA.Interfaces[0].IpAddress
+        routerA.RoutingTable.Entries.Add(new(0, 0, 0));
 
-        timer.Timeout += () =>
+        var routerB = new NetworkLayer.IpTablesRouter(2);
+        routerB.Interfaces[0].LinkNode = new LinkLayer.LinkEndpoint("B");
+        routerB.Interfaces[0].IpAddress = 2;
+        routerB.Interfaces[1].LinkNode = new LinkLayer.LinkEndpoint("B-C");
+        routerB.Interfaces[1].IpAddress = 8;
+        routerB.RoutingTable.Entries.Add(new(3, uint.MaxValue, 1));
+        routerB.RoutingTable.Entries.Add(new(0, 0, 0));
+
+        var routerC = new NetworkLayer.IpTablesRouter(1);
+        routerC.Interfaces[0].LinkNode = new LinkLayer.LinkEndpoint("C");
+        routerC.Interfaces[0].IpAddress = 3;
+        routerC.RoutingTable.Entries.Add(new(0, 0, 0));
+
+        world.AddEntity(routerA);
+        world.AddEntity(routerB);
+        world.AddEntity(routerC);
+
+        routerA.Interfaces[0].LinkNode!.LinkWith(routerB.Interfaces[0].LinkNode!);
+        routerB.Interfaces[1].LinkNode!.LinkWith(routerC.Interfaces[0].LinkNode!);
+
+        var datagram = new NetworkLayer.Datagram
         {
-            var switches = new List<LinkLayer.Switch>
-            {
-                switchA,
-                switchB,
-                switchC,
-                switchD,
-            };
-
-            // pick random source and destination
-            var rnd = new Random();
-            var source = switches[rnd.Next(switches.Count)];
-            LinkLayer.Switch dest;
-            do
-            {
-                dest = switches[rnd.Next(switches.Count)];
-            }
-            while (source == dest);
-
-            var frame = new LinkLayer.Frame
-            {
-                SourceMac = source.MacAddress,
-                DestinationMac = dest.MacAddress,
-            };
-
-            world.AddEntity(frame);
-            source.SendFrame(frame);
+            SourceIp = 1,
+            DestinationIp = 3,
         };
 
-        world.AddEntity(switchA);
-        world.AddEntity(switchB);
-        world.AddEntity(switchC);
-        world.AddEntity(switchD);
+        routerA.SendDatagram(datagram, routerA.Interfaces[0]);
 
-        switchA.LinkWith(switchB);
-        switchB.LinkWith(switchC);
-        switchB.LinkWith(switchD);
-
-        switchA.Position = new Vector2(200, 250);
-        switchB.Position = new Vector2(400, 250);
-        switchC.Position = new Vector2(500, 200);
-        switchD.Position = new Vector2(500, 300);
-
-        var frame1 = new LinkLayer.Frame
-        {
-            SourceMac = switchA.MacAddress,
-            DestinationMac = switchD.MacAddress,
-        };
-
-        var frame2 = new LinkLayer.Frame
-        {
-            SourceMac = switchA.MacAddress,
-            DestinationMac = switchC.MacAddress,
-        };
-
-        world.AddEntity(frame1);
-        world.AddEntity(frame2);
-
-        switchA.SendFrame(frame1);
-        switchA.SendFrame(frame2);
+        routerA.Position = new Vector2(200, 240);
+        routerB.Position = new Vector2(600, 240);
+        routerC.Position = new Vector2(700, 280);
 
         while (!Raylib.WindowShouldClose())
         {

@@ -8,7 +8,7 @@ namespace NetworkSim.LinkLayer;
 /// simplicity, the project does not simulate the physical layer, so this class
 /// also represents the physical layer transmission.
 /// </summary>
-public class Frame : Packet, IDrawable
+public class Frame : Entity, IPacket, IDrawable
 {
     public Vector2 Position { get; set; }
 
@@ -20,9 +20,9 @@ public class Frame : Packet, IDrawable
 
     public string DestinationMac { get; set; } = "00:00:00:00:00:00";
 
-    private const uint HeaderSize = 18;
+    public const uint HeaderSize = 18;
 
-    public override uint Size => HeaderSize + (Datagram?.Size ?? 0);
+    public uint Size => HeaderSize + (Datagram?.Size ?? 0);
 
     private Link? _currentLink;
 
@@ -35,6 +35,14 @@ public class Frame : Packet, IDrawable
             Visible = value is not null;
         }
     }
+
+    public enum FrameType
+    {
+        Ip,
+        Arp
+    }
+
+    public FrameType Type { get; set; } = FrameType.Ip;
 
     public float TransmissionTime { get; set; }
 
@@ -88,8 +96,8 @@ public class Frame : Packet, IDrawable
     public override object Clone()
     {
         var clone = (Frame)MemberwiseClone();
-        var clonedDatagram = Datagram?.CloneEntity() as NetworkLayer.Datagram;
-        clone.Datagram = clonedDatagram;
+        //var clonedDatagram = Datagram?.Clone() as NetworkLayer.Datagram;
+        //clone.Datagram = clonedDatagram;
             
         return clone;
     }
