@@ -8,7 +8,7 @@ public class Link : Entity, IDrawable
 
     public bool Visible { get; set; } = true;
 
-    public LinkEndpoint[] Endpoints { get; set; } = new LinkEndpoint[2];
+    public LinkNode[] Endpoints { get; set; } = new LinkNode[2];
 
     /// <summary>
     /// The bandwidth of the link in bits per second.
@@ -20,13 +20,13 @@ public class Link : Entity, IDrawable
     /// </summary>
     public Frame?[] CurrentTransmission { get; } = new Frame?[2];
 
-    public Link(LinkEndpoint end1, LinkEndpoint end2)
+    public Link(LinkNode end1, LinkNode end2)
     {
         Endpoints[0] = end1;
         Endpoints[1] = end2;
     }
 
-    private int GetIndexOfEndpoint(LinkEndpoint endpoint)
+    private int GetIndexOfEndpoint(LinkNode endpoint)
     {
         if (endpoint == Endpoints[0])
         {
@@ -42,12 +42,12 @@ public class Link : Entity, IDrawable
     /// <summary>
     /// Gets the frame currently being transmitted to the specified endpoint.
     /// </summary>
-    public Frame? GetTransmission(LinkEndpoint endpoint)
+    public Frame? GetTransmission(LinkNode endpoint)
     {
         return CurrentTransmission[GetIndexOfEndpoint(endpoint)]!;
     }
 
-    public LinkEndpoint GetOtherEndpoint(LinkEndpoint thisEndpoint)
+    public LinkNode GetOtherEndpoint(LinkNode thisEndpoint)
     {
         if (thisEndpoint == Endpoints[0])
         {
@@ -62,7 +62,7 @@ public class Link : Entity, IDrawable
         throw new ArgumentException("The provided endpoint is not part of this link.");
     }
 
-    public void Transmit(Frame frame, LinkEndpoint destination)
+    public void Transmit(Frame frame, LinkNode destination)
     {
         int index = GetIndexOfEndpoint(destination);
         float transmissionTime = (float)frame.Size / (Bandwidth * 8);

@@ -19,8 +19,8 @@ public class SwitchTests
 
         endpoint1.LinkWith(endpoint2);
 
-        endpoint1.Endpoints.ShouldContain(endpoint2);
-        endpoint2.Endpoints.ShouldContain(endpoint1);
+        endpoint1.Nodes.ShouldContain(endpoint2);
+        endpoint2.Nodes.ShouldContain(endpoint1);
     }
 
     [Fact]
@@ -48,8 +48,8 @@ public class SwitchTests
         var result = endpoint1.Unlink(endpoint2);
 
         result.ShouldBeTrue();
-        endpoint1.Endpoints.ShouldNotContain(endpoint2);
-        endpoint2.Endpoints.ShouldNotContain(endpoint1);
+        endpoint1.Nodes.ShouldNotContain(endpoint2);
+        endpoint2.Nodes.ShouldNotContain(endpoint1);
     }
 
     [Fact]

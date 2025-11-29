@@ -1,16 +1,16 @@
 namespace NetworkSim.LinkLayer;
 
-public abstract class LinkEndpoint : Entity, IDrawable
+public abstract class LinkNode : Entity, IDrawable
 {
     public Vector2 Position { get; set; }
 
     public string MacAddress { get; set; } = "00:00:00:00:00:00";
 
-    protected Dictionary<LinkEndpoint, Link> _endpoints = new();
+    protected Dictionary<LinkNode, Link> _links = new();
 
-    public HashSet<Link> Links => new(_endpoints.Values);
+    public HashSet<Link> Links => new(_links.Values);
 
-    public HashSet<LinkEndpoint> Endpoints => new(_endpoints.Keys);
+    public HashSet<LinkNode> Nodes => new(_links.Keys);
 
     public bool Visible { get; set; } = true;
 
@@ -23,33 +23,33 @@ public abstract class LinkEndpoint : Entity, IDrawable
     /// <summary>
     /// Creates a bidirectional link between this endpoint and the specified endpoint.
     /// </summary>
-    /// <param name="endpoint">The endpoint to link with.</param>
+    /// <param name="node">The endpoint to link with.</param>
     /// <returns>The created Link object.</returns>
     /// <remarks>
     /// This method is idempotent.
     /// </remarks>
-    public Link LinkWith(LinkEndpoint endpoint)
+    public Link LinkWith(LinkNode node)
     {
-        if (_endpoints.ContainsKey(endpoint))
+        if (_links.ContainsKey(node))
         {
-            return _endpoints[endpoint];
+            return _links[node];
         }
 
-        var link = new Link(this, endpoint);
-        _endpoints[endpoint] = link;
-        endpoint._endpoints[this] = link;
+        var link = new Link(this, node);
+        _links[node] = link;
+        node._links[this] = link;
 
         CurrentWorld?.AddEntity(link);
 
         return link;
     }
 
-    public bool Unlink(LinkEndpoint endpoint)
+    public bool Unlink(LinkNode node)
     {
-        var link = _endpoints.GetValueOrDefault(endpoint);
-        if (link is not null && _endpoints.Remove(endpoint))
+        var link = _links.GetValueOrDefault(node);
+        if (link is not null && _links.Remove(node))
         {
-            endpoint._endpoints.Remove(this);
+            node._links.Remove(this);
             CurrentWorld?.RemoveEntity(link);
             return true;
         }

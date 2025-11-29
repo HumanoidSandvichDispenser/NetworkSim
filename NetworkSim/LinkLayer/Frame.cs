@@ -55,8 +55,8 @@ public class Frame : Packet, IDrawable
 
         int index = CurrentLink.GetTransmissionIndex(this);
 
-        LinkEndpoint fromEndpoint = CurrentLink.Endpoints[1 - index];
-        LinkEndpoint toEndpoint = CurrentLink.Endpoints[index];
+        LinkNode fromEndpoint = CurrentLink.Endpoints[1 - index];
+        LinkNode toEndpoint = CurrentLink.Endpoints[index];
         Position = Vector2.Lerp(fromEndpoint.Position, toEndpoint.Position, t);
 
         if (TimeLeft <= 0)

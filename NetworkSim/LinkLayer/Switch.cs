@@ -2,19 +2,17 @@ using Raylib_cs;
 
 namespace NetworkSim.LinkLayer;
 
-public class Switch : LinkEndpoint
+public class Switch : LinkNode
 {
-    private readonly Dictionary<string, LinkEndpoint> _macTable = new();
+    private readonly Dictionary<string, LinkNode> _macTable = new();
 
-    public IReadOnlyDictionary<string, LinkEndpoint> MacTable => _macTable;
+    public IReadOnlyDictionary<string, LinkNode> MacTable => _macTable;
 
     private readonly Dictionary<Link, FrameQueue> _txQueue = new();
 
     public IReadOnlyDictionary<Link, FrameQueue> TxQueue => _txQueue;
 
     public uint QueueSize { get; set; } = 4096;
-
-    public event Action<Frame>? FrameReceived;
 
     public Switch(string macAddress = "00:00:00:00:00:00")
     {
@@ -33,7 +31,7 @@ public class Switch : LinkEndpoint
         {
             // known destination, forward to that link
             var endpoint = _macTable[frame.DestinationMac];
-            var link = _endpoints[endpoint];
+            var link = _links[endpoint];
 
             if (!_txQueue.ContainsKey(link))
             {
@@ -48,7 +46,7 @@ public class Switch : LinkEndpoint
 
             // create a copy of the frame for each link
             // and remove the original frame
-            foreach ((var endpoint, var link) in _endpoints)
+            foreach ((var endpoint, var link) in _links)
             {
                 if (endpoint.MacAddress != frame.SourceMac)
                 {
@@ -86,7 +84,7 @@ public class Switch : LinkEndpoint
         if (frame.DestinationMac == MacAddress || IsPromiscuous)
         {
             // deliver to upper layer through event
-            FrameReceived?.Invoke(frame);
+            InvokeFrameReceived(frame);
         }
     }
 
