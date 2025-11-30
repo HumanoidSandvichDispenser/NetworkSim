@@ -15,6 +15,8 @@ public class Link : Entity, IDrawable
     /// </summary>
     public int Bandwidth { get; set; } = 1 << 12; // 4 Kbps
 
+    public const int NormalizedBandwidth = 1 << 12;
+
     /// <summary>
     /// The physical packet currently being transmitted on this link for each endpoint.
     /// </summary>
@@ -62,6 +64,10 @@ public class Link : Entity, IDrawable
         throw new ArgumentException("The provided endpoint is not part of this link.");
     }
 
+    /// <summary>
+    /// Physically transmits a frame to the specified destination endpoint.
+    /// Ignores any queuing or collision detection.
+    /// </summary>
     public void Transmit(Frame frame, LinkNode destination)
     {
         int index = GetIndexOfEndpoint(destination);
@@ -105,6 +111,25 @@ public class Link : Entity, IDrawable
         return Array.IndexOf(CurrentTransmission, packet);
     }
 
+    /// <summary>
+    /// Drops all ongoing transmissions on this link.
+    /// </summary>
+    public void DropTransmissions()
+    {
+        for (int i = 0; i < CurrentTransmission.Length; i++)
+        {
+            var packet = CurrentTransmission[i];
+
+            if (packet is not null)
+            {
+                packet.TransmissionComplete -= TransmissionComplete;
+                packet.CurrentLink = null;
+                CurrentWorld?.RemoveEntity(packet);
+                CurrentTransmission[i] = null;
+            }
+        }
+    }
+
     public void Draw()
     {
         var start = Endpoints[0].Position;
@@ -117,6 +142,7 @@ public class Link : Entity, IDrawable
             lineColor = Color.Black;
         }
 
-        Raylib.DrawLineEx(start, end, 2, lineColor);
+        float thickness = Bandwidth / NormalizedBandwidth * 4;
+        Raylib.DrawLineEx(start, end, thickness, lineColor);
     }
 }

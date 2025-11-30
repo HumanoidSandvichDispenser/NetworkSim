@@ -30,6 +30,11 @@ public class FrameQueue
         return _queue.Dequeue();
     }
 
+    public Frame Peek()
+    {
+        return _queue.Peek();
+    }
+
     public bool TryDequeue(out Frame? frame)
     {
         return _queue.TryDequeue(out frame);

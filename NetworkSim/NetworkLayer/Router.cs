@@ -3,7 +3,8 @@ using Raylib_cs;
 namespace NetworkSim.NetworkLayer;
 
 /// <summary>
-/// Represents a L3 router with multiple IPv4 network interfaces.
+/// Represents a L3 router with multiple IPv4 network interfaces. This class
+/// also has optional simulated processing delay for incoming datagrams.
 /// </summary>
 public abstract class Router : NetworkNode, IDrawable
 {
@@ -30,6 +31,10 @@ public abstract class Router : NetworkNode, IDrawable
 
     public NetworkInterface[] Interfaces { get; }
 
+    public RoutingTable<int> InterfaceTable { get; } = new();
+
+    private float _processingTimer = 0;
+
     public Router(int numInterfaces = 2)
     {
         Interfaces = new NetworkInterface[numInterfaces];
@@ -39,6 +44,16 @@ public abstract class Router : NetworkNode, IDrawable
             Interfaces[i] = new NetworkInterface();
             Interfaces[i].DatagramReceived += OnDatagramReceived;
             Interfaces[i].ArpPayloadReceived += OnArpPayloadReceived;
+        }
+    }
+
+    public override void SendDatagram(Datagram datagram, IpAddress nextHop)
+    {
+        int? index = InterfaceTable.GetFirstMatch(nextHop);
+
+        if (index.HasValue && index.Value >= 0 && index.Value < Interfaces.Length)
+        {
+            SendDatagram(datagram, nextHop, Interfaces[index.Value]);
         }
     }
 
@@ -55,13 +70,7 @@ public abstract class Router : NetworkNode, IDrawable
         }
     }
 
-    /// <summary>
-    /// Routes a datagram arriving on a specific interface to the next hop
-    /// interface. Returns null (drop) if no route is found.
-    /// </summary>
-    public abstract NetworkInterface? Route(Datagram datagram, NetworkInterface from);
-
-    public void OnDatagramReceived(NetworkInterface from, Datagram? datagram)
+    private void OnDatagramReceived(NetworkInterface from, Datagram? datagram)
     {
         if (datagram is null)
         {
@@ -73,11 +82,44 @@ public abstract class Router : NetworkNode, IDrawable
             return;
         }
 
-        NetworkInterface? nextHop = Route(datagram, from);
-
-        if (nextHop is not null && nextHop != from)
+        // ignore ARP packets for routing
+        if (datagram is ArpPayload)
         {
-            SendDatagram(datagram, nextHop);
+            return;
+        }
+
+        if (ProcessingDelay <= 0)
+        {
+            HandleDatagram(from, datagram);
+        }
+        else
+        {
+            ProcessingQueue.Enqueue((datagram, from));
+        }
+    }
+
+    private void HandleDatagram(NetworkInterface from, Datagram datagram)
+    {
+        IpAddress? nextHop = Route(datagram, from);
+
+        if (nextHop is not null && nextHop.Value != from.IpAddress)
+        {
+            SendDatagram(datagram, nextHop.Value);
+        }
+    }
+
+    public override void Update(float delta)
+    {
+        _processingTimer -= delta;
+        if (_processingTimer <= 0 && ProcessingDelay > 0)
+        {
+            Console.WriteLine($"Router processing queue length: {ProcessingQueue.Count}");
+            if (ProcessingQueue.Count > 0)
+            {
+                (Datagram datagram, NetworkInterface from) = ProcessingQueue.Dequeue();
+                HandleDatagram(from, datagram);
+            }
+            _processingTimer += ProcessingDelay;
         }
     }
 

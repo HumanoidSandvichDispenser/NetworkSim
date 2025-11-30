@@ -30,36 +30,29 @@ public class NetworkInterface
         }
     }
 
+    /// <summary>
+    /// Event triggered when a datagram is received on this network interface.
+    /// </summary>
     public event Action<NetworkInterface, Datagram?>? DatagramReceived;
 
+    /// <summary>
+    /// Event triggered when an ARP payload is received on this network interface.
+    /// </summary>
     public event Action<ArpPayload, LinkLayer.Frame, NetworkInterface>? ArpPayloadReceived;
 
     /// <summary>
     /// The IPv4 address assigned to this network interface.
     /// </summary>
-    public uint IpAddress { get; set; } = 0;
+    public IpAddress IpAddress { get; set; } = new("0.0.0.0");
 
     /// <summary>
     /// The subnet mask assigned to this network interface.
     /// </summary>
-    public uint SubnetMask { get; set; } = 0xFF_FF_FF_00;
+    public IpAddress SubnetMask { get; set; } = 0xFF_FF_FF_00;
 
-    /// <summary>
-    /// Returns the uint representation of a dotted-decimal IPv4 address.
-    /// </summary>
-    public static uint AddressFromString(string ipAddress)
+    public bool IsInSameSubnet(IpAddress otherIp)
     {
-        uint addr = 0;
-        foreach (byte octet in ipAddress.Split('.').Select(byte.Parse))
-        {
-            addr = (addr << 8) | octet;
-        }
-        return addr;
-    }
-
-    public bool IsInSameSubnet(uint otherIp)
-    {
-        return (IpAddress & SubnetMask) == (otherIp & SubnetMask);
+        return otherIp.Matches(IpAddress, SubnetMask);
     }
 
     private void OnFrameReceived(LinkLayer.Frame frame)

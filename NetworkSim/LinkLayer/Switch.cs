@@ -38,8 +38,6 @@ public class Switch : LinkNode
         {
             // unknown destination, flood to all links except the source
 
-            // create a copy of the frame for each link
-            // and remove the original frame
             foreach ((var endpoint, var link) in _links)
             {
                 if (endpoint.MacAddress != frame.SourceMac)
@@ -70,7 +68,7 @@ public class Switch : LinkNode
             SendFrame(frame, fromLink);
         }
 
-        if (frame.DestinationMac == MacAddress)
+        if (frame.IsBroadcast() || frame.DestinationMac == MacAddress)
         {
             // deliver to upper layer through event
             InvokeFrameReceived(frame);

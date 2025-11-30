@@ -12,9 +12,53 @@ public abstract class NetworkNode : Entity
     /// </summary>
     public Dictionary<uint, Queue<Datagram>> ArpQueue { get; } = new();
 
-    public Dictionary<uint, string> ArpTable { get; } = new();
+    public Dictionary<IpAddress, string> ArpTable { get; } = new();
 
-    public void SendDatagram(Datagram datagram, NetworkInterface to)
+    /// <summary>
+    /// Queue of datagrams to be processed, along with the interface they
+    /// arrived on. This is used to simulate processing delay.
+    /// </summary>
+    public Queue<(Datagram, NetworkInterface)> ProcessingQueue { get; set; } = new();
+
+    /// <summary>
+    /// Processing delay in seconds for incoming datagrams.
+    /// </summary>
+    public float ProcessingDelay { get; set; } = 0;
+
+    /// <summary>
+    /// Routes a datagram arriving on a specific interface to the next hop
+    /// interface. Returns null (drop) if no route is found.
+    /// </summary>
+    public abstract IpAddress? Route(Datagram datagram, NetworkInterface? from);
+
+    /// <summary>
+    /// Sends a datagram, routing it to the appropriate next hop.
+    /// </summary>
+    public void SendDatagram(Datagram datagram)
+    {
+        IpAddress? nextHop = Route(datagram, null);
+        if (nextHop.HasValue)
+        {
+            SendDatagram(datagram, nextHop.Value);
+        }
+        else
+        {
+            // drop datagram if no route
+        }
+    }
+
+    /// <summary>
+    /// Sends a datagram to the specified next hop. This is marked abstract
+    /// because the implementation depends on how the network node is set up
+    /// (e.g., which interfaces it has, and how many).
+    /// </summary>
+    public abstract void SendDatagram(Datagram datagram, IpAddress nextHop);
+
+    /// <summary>
+    /// Sends a datagram on the specified network interface to the specified
+    /// next hop.
+    /// </summary>
+    public void SendDatagram(Datagram datagram, IpAddress nextHop, NetworkInterface to)
     {
         if (to.LinkNode is null)
         {
@@ -28,12 +72,13 @@ public abstract class NetworkNode : Entity
             return;
         }
 
-        Console.WriteLine($"Sending datagram to IP {datagram.DestinationIp:X8}");
+        Console.WriteLine($"Sending datagram to IP {datagram.DestinationIp} via next hop {nextHop} on interface with MAC {to.LinkNode.MacAddress}");
 
         var frame = new LinkLayer.Frame();
         frame.SourceMac = to.LinkNode.MacAddress;
 
-        if (ArpTable.TryGetValue(datagram.DestinationIp, out string? destMac))
+        // try to resolve arp
+        if (ArpTable.TryGetValue(nextHop, out string? destMac))
         {
             frame.DestinationMac = destMac;
             frame.Datagram = datagram;
@@ -44,19 +89,19 @@ public abstract class NetworkNode : Entity
             frame.DestinationMac = "FF:FF:FF:FF:FF:FF";
             frame.Datagram = new ArpPayload
             {
-                SourceIp = datagram.SourceIp,
-                DestinationIp = datagram.DestinationIp,
+                SourceIp = to.IpAddress,
+                DestinationIp = nextHop,
             };
 
             // queue the datagram for sending after arp reply
-            if (!ArpQueue.ContainsKey(datagram.DestinationIp))
+            if (!ArpQueue.ContainsKey(nextHop))
             {
-                ArpQueue[datagram.DestinationIp] = new Queue<Datagram>();
+                ArpQueue[nextHop] = new Queue<Datagram>();
             }
 
-            Console.WriteLine($"Queuing datagram for ARP resolution of IP {datagram.DestinationIp:X8}");
+            Console.WriteLine($"[{to.LinkNode.MacAddress}] Unable to locate {nextHop}. Sending ARP request first.");
 
-            ArpQueue[datagram.DestinationIp].Enqueue(datagram);
+            ArpQueue[nextHop].Enqueue(datagram);
         }
 
         to.LinkNode?.SendFrame(frame);
@@ -66,12 +111,10 @@ public abstract class NetworkNode : Entity
     /// Handles an incoming ARP payload. Subclasses should listen to
     /// the NetworkInterface.ArpPayloadReceived event and call this method.
     /// </summary>
-    public void OnArpPayloadReceived(ArpPayload arp, LinkLayer.Frame frame, NetworkInterface ni)
+    protected void OnArpPayloadReceived(ArpPayload arp, LinkLayer.Frame frame, NetworkInterface ni)
     {
         if (arp.Operation == ArpPayload.OperationType.Request)
         {
-            Console.WriteLine($"ARP request received for IP {arp.DestinationIp:X8}");
-
             // add arp entry
             ArpTable[arp.SourceIp] = frame.SourceMac;
 
@@ -107,8 +150,6 @@ public abstract class NetworkNode : Entity
         }
         else if (arp.Operation == ArpPayload.OperationType.Reply)
         {
-            Console.WriteLine($"ARP reply received for IP {arp.DestinationIp:X8}");
-
             // add arp entry
             ArpTable[arp.SourceIp] = frame.SourceMac;
 
@@ -118,7 +159,7 @@ public abstract class NetworkNode : Entity
                 while (queue.Count > 0)
                 {
                     var datagram = queue.Dequeue();
-                    SendDatagram(datagram, ni);
+                    SendDatagram(datagram);
                 }
 
                 ArpQueue.Remove(arp.SourceIp);

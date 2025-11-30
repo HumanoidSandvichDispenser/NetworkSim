@@ -30,7 +30,7 @@ public sealed class LinkEndpoint : LinkNode
             base.Unlink(_connectedLink.GetOtherEndpoint(this));
         }
 
-        _connectedLink = base.LinkWith(node);
+        _connectedLink = existingLink ?? base.LinkWith(node);
         return _connectedLink;
     }
 
@@ -72,11 +72,19 @@ public sealed class LinkEndpoint : LinkNode
             return;
         }
 
-        if (_txQueue.TryDequeue(out Frame? frame))
+        var endpoint = _connectedLink.GetOtherEndpoint(this);
+        if (_connectedLink.GetTransmission(endpoint) is not null)
         {
-            if (frame is not null)
+            // link is busy transmitting to the other endpoint
+            return;
+        }
+
+        if (_txQueue.Count > 0)
+        {
+            Frame frame = _txQueue.Dequeue();
+            var destination = _connectedLink.GetOtherEndpoint(this);
+            if (_connectedLink.GetTransmission(destination) is null)
             {
-                var destination = _connectedLink.GetOtherEndpoint(this);
                 _connectedLink.Transmit(frame, destination);
             }
         }

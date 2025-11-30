@@ -14,44 +14,51 @@ internal static class Program
         Raylib.SetTargetFPS(60);
 
         var world = World.Instance;
-        world.TimeScale = 0.001f;
+        world.TimeScale = 0.01f;
 
-        var routerA = new NetworkLayer.IpTablesRouter(1);
-        routerA.Interfaces[0].LinkNode = new LinkLayer.LinkEndpoint("A");
-        //routerA.Interfaces[0].IpAddress
-        routerA.RoutingTable.Entries.Add(new(0, 0, 0));
+        var nodes = NetworkFactory.CreateLocalNetwork(world, "192.168.1.1", "255.255.255.0", 7)
+            .ToList();
 
-        var routerB = new NetworkLayer.IpTablesRouter(2);
-        routerB.Interfaces[0].LinkNode = new LinkLayer.LinkEndpoint("B");
-        routerB.Interfaces[0].IpAddress = 2;
-        routerB.Interfaces[1].LinkNode = new LinkLayer.LinkEndpoint("B-C");
-        routerB.Interfaces[1].IpAddress = 8;
-        routerB.RoutingTable.Entries.Add(new(3, uint.MaxValue, 1));
-        routerB.RoutingTable.Entries.Add(new(0, 0, 0));
-
-        var routerC = new NetworkLayer.IpTablesRouter(1);
-        routerC.Interfaces[0].LinkNode = new LinkLayer.LinkEndpoint("C");
-        routerC.Interfaces[0].IpAddress = 3;
-        routerC.RoutingTable.Entries.Add(new(0, 0, 0));
-
-        world.AddEntity(routerA);
-        world.AddEntity(routerB);
-        world.AddEntity(routerC);
-
-        routerA.Interfaces[0].LinkNode!.LinkWith(routerB.Interfaces[0].LinkNode!);
-        routerB.Interfaces[1].LinkNode!.LinkWith(routerC.Interfaces[0].LinkNode!);
-
-        var datagram = new NetworkLayer.Datagram
+        // set up timer to send random data from some host
+        Timer timer = new Timer();
+        timer.Timeout += () =>
         {
-            SourceIp = 1,
-            DestinationIp = 3,
+            if (new System.Random().Next(50) > 2)
+            {
+                return;
+            }
+
+            // pick a random host to send data
+            var host = nodes
+                .Where(n => n is NetworkLayer.NetworkHost)
+                .Select(n => n as NetworkLayer.NetworkHost!)
+                .Skip(new System.Random().Next(nodes.Count))
+                .FirstOrDefault();
+
+            var recipient = nodes
+                .Where(n => n is NetworkLayer.NetworkHost)
+                .Where(n => n != host)
+                .Select(n => n as NetworkLayer.NetworkHost!)
+                .Skip(new System.Random().Next(nodes.Count))
+                .FirstOrDefault();
+
+            if (host is null || recipient is null)
+            {
+                return;
+            }
+
+            var datagram = new NetworkLayer.Datagram
+            {
+                SourceIp = host.Interface.IpAddress,
+                DestinationIp = recipient.Interface.IpAddress,
+            };
+
+            host.SendDatagram(datagram);
         };
 
-        routerA.SendDatagram(datagram, routerA.Interfaces[0]);
-
-        routerA.Position = new Vector2(200, 240);
-        routerB.Position = new Vector2(600, 240);
-        routerC.Position = new Vector2(700, 280);
+        world.AddEntity(timer);
+        timer.IsRepeating = true;
+        timer.Start(world.TimeScale * 0.05f);
 
         while (!Raylib.WindowShouldClose())
         {

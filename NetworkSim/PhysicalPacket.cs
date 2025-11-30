@@ -65,10 +65,19 @@ public class PhysicalPacket : Entity, IPacket, IDrawable
             return;
         }
 
-        Raylib.DrawPoly(Position, 4, 8, 0, Color.DarkPurple);
+        Raylib.DrawPoly(Position, 4, 12, 0, Color.Black);
 
-        Vector2 textPos = Position + new Vector2(0, -16);
-        string sizeInfo = $"{Size}B";
-        Raylib.DrawText(sizeInfo, (int)textPos.X, (int)textPos.Y, 20, Color.Black);
+        if (Frame is not null)
+        {
+            Raylib.DrawPoly(Position, 4, 8, 0, Color.Purple);
+            if (Frame.Datagram is not null)
+            {
+                Raylib.DrawPoly(Position, 4, 4, 0, Color.Magenta);
+            }
+        }
+
+        Vector2 textPos = Position + new Vector2(0, -24);
+        string sizeInfo = $"{Size} bytes";
+        Raylib.DrawText(sizeInfo, (int)textPos.X, (int)textPos.Y, 24, Color.Black);
     }
 }

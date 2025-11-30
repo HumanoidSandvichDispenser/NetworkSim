@@ -88,4 +88,24 @@ public class LinkLayerTests
         world.Update(1, 2);
         receivedFrame.ShouldNotBeNull();
     }
+
+    [Fact]
+    public void ReceivingFrame_ShouldInvokeFrameReceivedEvent()
+    {
+        var a = new Switch("a");
+        var b = new Switch("b");
+        var frame = new Frame
+        {
+            SourceMac = "a",
+            DestinationMac = "b",
+        };
+
+        Frame? receivedFrame = null;
+
+        b.FrameReceived += f => receivedFrame = f;
+        b.ReceiveFrame(frame, a.LinkWith(b));
+
+        receivedFrame.ShouldNotBeNull();
+        receivedFrame.SourceMac.ShouldBe(frame.SourceMac);
+    }
 }
